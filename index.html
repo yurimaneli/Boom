@@ -213,10 +213,15 @@
             100% { transform: scale(0.95); opacity: 1; }
         }
 
-        .mine {
+             .mine {
             background-color: var(--danger-color);
-            animation: explode 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+            animation: mineReveal 0.5s ease-out forwards;
             box-shadow: var(--neon-glow-danger);
+        }
+
+        @keyframes mineReveal {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         @keyframes explode {
@@ -813,13 +818,13 @@
     <audio id="success-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"></audio>
     
     <script>
-        // Configurações do jogo
+                // Configurações do jogo
         const config = {
             easy: { width: 8, height: 8, mines: 10 },
             medium: { width: 12, height: 12, mines: 25 },
             hard: { width: 16, height: 16, mines: 50 }
         };
-        
+
         // Estado do jogo
         let gameState = {
             board: [],
@@ -848,7 +853,7 @@
             ],
             currentPattern: 0
         };
-        
+
         // Elementos DOM
         const gameContainer = document.getElementById('game');
         const difficultySelect = document.getElementById('difficulty');
@@ -864,7 +869,7 @@
         const disarmTimerDisplay = document.getElementById('disarm-timer');
         const disarmResultDisplay = document.getElementById('disarm-result');
         const particlesContainer = document.getElementById('particles');
-        
+
         // Sons
         const clickSound = document.getElementById('click-sound');
         const explosionSound = document.getElementById('explosion-sound');
@@ -875,7 +880,7 @@
         const wireCutSound = document.getElementById('wire-cut-sound');
         const countdownSound = document.getElementById('countdown-sound');
         const successSound = document.getElementById('success-sound');
-        
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
             startBtn.addEventListener('click', startGame);
@@ -898,11 +903,11 @@
             // Efeito de partículas
             createParticles();
         });
-        
+
         // Cria partículas flutuantes
         function createParticles() {
             particlesContainer.innerHTML = '';
-            const particleCount = 20; // Reduzido de 30 para 20
+            const particleCount = 20;
             
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
@@ -927,43 +932,12 @@
                 const duration = Math.random() * 20 + 10;
                 const delay = Math.random() * 5;
                 particle.style.animation = `float ${duration}s linear ${delay}s infinite`;
+                particle.style.willChange = 'transform, opacity';
                 
                 particlesContainer.appendChild(particle);
-                
-                // Configura animação de flutuação
-                animateParticle(particle, duration);
             }
         }
-        
-        // Animação de partículas
-        function animateParticle(particle, duration) {
-            const startX = Math.random() * 100;
-            const startY = Math.random() * 100;
-            
-            const keyframes = [
-                { 
-                    transform: `translate(${startX}%, ${startY}%)`, 
-                    opacity: 0 
-                },
-                { 
-                    transform: `translate(${startX + (Math.random() * 20 - 10)}%, ${startY + (Math.random() * 20 - 10)}%)`, 
-                    opacity: 0.6 
-                },
-                { 
-                    transform: `translate(${startX + (Math.random() * 40 - 20)}%, ${startY + (Math.random() * 40 - 20)}%)`, 
-                    opacity: 0 
-                }
-            ];
-            
-            const options = {
-                duration: duration * 1000,
-                iterations: Infinity,
-                easing: 'linear'
-            };
-            
-            particle.animate(keyframes, options);
-        }
-        
+
         // Alterna entre temas
         function toggleTheme() {
             gameState.theme = gameState.theme === 'bunker' ? 'classic' : 'bunker';
@@ -971,7 +945,7 @@
             themeBtn.textContent = `TEMA: ${gameState.theme.toUpperCase()}`;
             createParticles();
         }
-        
+
         function setTheme(theme) {
             document.documentElement.style.setProperty('--bg-color', theme === 'bunker' ? '#0D0D0D' : '#121212');
             document.documentElement.style.setProperty('--grid-color', theme === 'bunker' ? 'rgba(26, 26, 26, 0.8)' : 'rgba(51, 51, 51, 0.8)');
@@ -981,7 +955,7 @@
             document.documentElement.style.setProperty('--scanline-color', theme === 'bunker' ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)');
             document.documentElement.style.setProperty('--grid-border', theme === 'bunker' ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)');
         }
-        
+
         // Inicia o jogo
         function startGame() {
             // Reinicia estado
@@ -1027,7 +1001,7 @@
             // Efeito de entrada
             animateBoardEntrance();
         }
-        
+
         // Animação de entrada do tabuleiro
         function animateBoardEntrance() {
             const cells = document.querySelectorAll('.cell');
@@ -1051,7 +1025,7 @@
                 }, 50 * (row + col));
             });
         }
-        
+
         // Cria o tabuleiro com minas
         function createBoard(width, height, mines) {
             const board = Array(height).fill().map(() => Array(width).fill(0));
@@ -1086,7 +1060,7 @@
             
             return board;
         }
-        
+
         // Renderiza o tabuleiro
         function renderBoard(width, height) {
             gameContainer.innerHTML = '';
@@ -1111,9 +1085,6 @@
                         if (!gameState.gameOver && !gameState.revealed.some(c => c.x === x && c.y === y)) {
                             cell.style.transform = 'scale(1.1) translate3d(0, 0, 10px)';
                             cell.style.boxShadow = '0 0 15px rgba(85, 255, 85, 0.5)';
-                            
-                            // Efeito de partículas no hover
-                            createHoverParticles(cell);
                         }
                     });
                     
@@ -1128,59 +1099,11 @@
                 }
             }
         }
-        
-        // Cria partículas no hover da célula
-        function createHoverParticles(cell) {
-            const rect = cell.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            
-            for (let i = 0; i < 3; i++) { // Reduzido de 5 para 3
-                const particle = document.createElement('div');
-                particle.classList.add('particle');
-                particle.style.position = 'fixed';
-                particle.style.width = '3px';
-                particle.style.height = '3px';
-                particle.style.backgroundColor = gameState.theme === 'bunker' ? '#55FF55' : '#4CAF50';
-                particle.style.borderRadius = '50%';
-                particle.style.pointerEvents = 'none';
-                particle.style.left = `${centerX}px`;
-                particle.style.top = `${centerY}px`;
-                particle.style.opacity = '0.8';
-                particle.style.willChange = 'transform, opacity'; // Otimização
-                
-                document.body.appendChild(particle);
-                
-                // Animação
-                const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * 20 + 10;
-                const duration = Math.random() * 1000 + 500;
-                
-                const animation = particle.animate([
-                    { 
-                        transform: 'translate3d(0, 0, 0) scale(1)', 
-                        opacity: 0.8 
-                    },
-                    { 
-                        transform: `translate3d(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px, 0) scale(0.2)`, 
-                        opacity: 0 
-                    }
-                ], {
-                    duration: duration,
-                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-                });
-                
-                animation.onfinish = () => particle.remove();
-            }
-        }
-        
+
         // Atualiza o timer
         function updateTimer() {
             const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
             timerDisplay.textContent = `⏱️ ${elapsed.toString().padStart(3, '0')}`;
-            
-            // Barra de progresso
-            const timerBar = document.querySelector('#timer::after');
             
             // Efeito sonoro de tick a cada 10 segundos
             if (elapsed > 0 && elapsed % 10 === 0) {
@@ -1188,7 +1111,7 @@
                 tickSound.play();
             }
         }
-        
+
         // Clique esquerdo (revelar célula)
         function handleClick(x, y) {
             if (gameState.gameOver || gameState.flagged.some(f => f.x === x && f.y === y)) return;
@@ -1213,7 +1136,7 @@
                     const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
                     cell.classList.add('mine');
                     
-                    // Efeito de explosão em cadeia
+                    // Efeito de explosão simplificado
                     setTimeout(() => {
                         explodeChain(x, y);
                     }, 300);
@@ -1237,7 +1160,7 @@
             // Verifica vitória
             checkWin();
         }
-        
+
         // Revela célula com animação
         function revealCellWithAnimation(cell, x, y) {
             cell.classList.add('revealed');
@@ -1279,97 +1202,32 @@
                 }
             };
         }
-        
-        // Explosão em cadeia
+
+        // Explosão simplificada
         function explodeChain(x, y) {
             const width = gameState.board[0].length;
             const height = gameState.board.length;
             
-            // Explode a célula clicada
-            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
-            cell.classList.add('mine');
+            // Revela todas as minas de uma vez
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (gameState.board[y][x] === -1 && !gameState.revealed.some(c => c.x === x && c.y === y)) {
+                        const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+                        cell.classList.add('mine');
+                    }
+                }
+            }
             
             // Toca som de explosão
             explosionSound.currentTime = 0;
             explosionSound.play();
             
-            // Cria efeito de explosão
-            createExplosionEffect(x, y);
-            
-            // Explode minas próximas com delay
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    const nx = x + dx;
-                    const ny = y + dy;
-                    
-                    if (
-                        nx >= 0 && nx < width &&
-                        ny >= 0 && ny < height &&
-                        gameState.board[ny][nx] === -1 &&
-                        !gameState.revealed.some(c => c.x === nx && c.y === ny)
-                    ) {
-                        setTimeout(() => {
-                            explodeChain(nx, ny);
-                        }, Math.random() * 500 + 200);
-                    }
-                }
-            }
-            
             // Game over após um pequeno delay
             setTimeout(() => {
                 gameOver(false);
-            }, 1000);
+            }, 500);
         }
-        
-        // Cria efeito de explosão
-        function createExplosionEffect(x, y) {
-            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
-            const rect = cell.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            
-            for (let i = 0; i < 10; i++) { // Reduzido de 20 para 10
-                const particle = document.createElement('div');
-                particle.classList.add('particle');
-                particle.style.position = 'fixed';
-                particle.style.width = `${Math.random() * 4 + 3}px`; // Tamanho reduzido
-                particle.style.height = particle.style.width;
-                particle.style.backgroundColor = `hsl(${Math.random() * 30 + 10}, 100%, 50%)`;
-                particle.style.borderRadius = '50%';
-                particle.style.pointerEvents = 'none';
-                particle.style.left = `${centerX}px`;
-                particle.style.top = `${centerY}px`;
-                particle.style.opacity = '1';
-                particle.style.zIndex = '200';
-                particle.style.willChange = 'transform, opacity'; // Otimização
-                
-                document.body.appendChild(particle);
-                
-                // Animação
-                const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * 50 + 30;
-                const duration = Math.random() * 1000 + 500;
-                
-                const animation = particle.animate([
-                    { 
-                        transform: 'translate3d(0, 0, 0) scale(1)', 
-                        opacity: 1,
-                        boxShadow: '0 0 10px currentColor'
-                    },
-                    { 
-                        transform: `translate3d(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px, 0) scale(0.2)`, 
-                        opacity: 0,
-                        boxShadow: '0 0 20px currentColor'
-                    }
-                ], {
-                    duration: duration,
-                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-                });
-                
-                animation.onfinish = () => particle.remove();
-            }
-        }
-        
+
         // Inicia sequência de desarme
         function startDisarmSequence(x, y) {
             gameState.currentBomb = { x, y };
@@ -1419,7 +1277,7 @@
                 }
             }, 1000);
         }
-        
+
         // Gera a cor correta para desarme com padrão aleatório
         function generateCorrectWireColor() {
             // Pega o padrão atual
@@ -1448,7 +1306,7 @@
                 }, 600);
             }
         }
-        
+
         // Manipula corte de fio
         function handleWireCut(e) {
             const wireElement = e.target;
@@ -1475,7 +1333,7 @@
                 }
             }, 500);
         }
-        
+
         // Desarme bem-sucedido
         function disarmSuccess() {
             clearInterval(gameState.disarmTimerInterval);
@@ -1523,9 +1381,6 @@
             successSound.currentTime = 0;
             successSound.play();
             
-            // Efeito de partículas
-            createSuccessParticles();
-            
             // Esconde modal após 2 segundos
             setTimeout(() => {
                 disarmModal.style.display = 'none';
@@ -1539,23 +1394,7 @@
                 checkWin();
             }, 2000);
         }
-        
-        // Cria partículas de sucesso
-        function createSuccessParticles() {
-            for (let i = 0; i < 20; i++) { // Reduzido de 30 para 20
-                const confetti = document.createElement('div');
-                confetti.classList.add('confetti');
-                confetti.style.left = `${Math.random() * 100}%`;
-                confetti.style.backgroundColor = `hsl(${Math.random() * 60 + 100}, 100%, 50%)`;
-                confetti.style.willChange = 'transform, opacity'; // Otimização
-                document.body.appendChild(confetti);
-                
-                setTimeout(() => {
-                    confetti.remove();
-                }, 5000);
-            }
-        }
-        
+
         // Desarme falhou
         function disarmFailed() {
             clearInterval(gameState.disarmTimerInterval);
@@ -1563,18 +1402,6 @@
             // Mostra a bomba
             const cell = document.querySelector(`.cell[data-x="${gameState.currentBomb.x}"][data-y="${gameState.currentBomb.y}"]`);
             cell.classList.add('mine');
-            
-            // Animação de explosão
-            cell.animate([
-                { transform: 'scale(1)', opacity: 1 },
-                { transform: 'scale(1.5)', opacity: 0.8 },
-                { transform: 'scale(0.8)', opacity: 1 },
-                { transform: 'scale(1.2)', opacity: 0.9 },
-                { transform: 'scale(1)', opacity: 1 }
-            ], {
-                duration: 800,
-                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-            });
             
             // Mostra resultado
             disarmResultDisplay.textContent = 'BOOM!';
@@ -1593,10 +1420,11 @@
                     w.style.pointerEvents = 'auto';
                 });
                 
-                gameOver(false);
+                // Revela todas as minas
+                explodeChain(gameState.currentBomb.x, gameState.currentBomb.y);
             }, 1000);
         }
-        
+
         // Clique direito (bandeira)
         function handleRightClick(x, y) {
             if (gameState.gameOver || gameState.revealed.some(c => c.x === x && c.y === y)) return;
@@ -1662,7 +1490,7 @@
                 easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
             });
         }
-        
+
         // Revela células adjacentes
         function revealAdjacent(x, y) {
             const width = gameState.board[0].length;
@@ -1686,7 +1514,7 @@
                 }
             }
         }
-        
+
         // Verifica se o jogador venceu
         function checkWin() {
             const width = gameState.board[0].length;
@@ -1698,7 +1526,7 @@
                 gameOver(true);
             }
         }
-        
+
         // Fim de jogo
         function gameOver(isWin) {
             gameState.gameOver = true;
@@ -1718,11 +1546,6 @@
                         if (gameState.board[y][x] === -1 && !gameState.revealed.some(c => c.x === x && c.y === y)) {
                             const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
                             cell.classList.add('mine');
-                            
-                            // Animação de explosão
-                            setTimeout(() => {
-                                createExplosionEffect(x, y);
-                            }, Math.random() * 1000);
                         }
                     }
                 }
@@ -1734,9 +1557,6 @@
                 // Toca som de vitória
                 winSound.currentTime = 0;
                 winSound.play();
-                
-                // Efeito de confete
-                createConfetti();
                 
                 // Animação de vitória nas células
                 const cells = document.querySelectorAll('.cell');
@@ -1775,51 +1595,6 @@
             
             // Para música
             bgMusic.pause();
-        }
-        
-        // Cria efeito de confete
-        function createConfetti() {
-            const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
-            
-            for (let i = 0; i < 80; i++) { // Reduzido de 100 para 80
-                const confetti = document.createElement('div');
-                confetti.classList.add('confetti');
-                
-                // Posição aleatória na parte superior
-                confetti.style.left = `${Math.random() * 100}%`;
-                
-                // Cor aleatória
-                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                
-                // Tamanho aleatório
-                const size = Math.random() * 10 + 5;
-                confetti.style.width = `${size}px`;
-                confetti.style.height = `${size}px`;
-                
-                // Forma aleatória (quadrado ou círculo)
-                if (Math.random() > 0.5) {
-                    confetti.style.borderRadius = '50%';
-                } else {
-                    confetti.style.borderRadius = '0';
-                }
-                
-                // Rotação aleatória
-                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-                
-                // Duração aleatória
-                const duration = Math.random() * 3 + 2;
-                confetti.style.animation = `confettiFall ${duration}s linear forwards`;
-                
-                // Delay aleatório
-                confetti.style.animationDelay = `${Math.random() * 2}s`;
-                
-                document.body.appendChild(confetti);
-                
-                // Remove após a animação
-                setTimeout(() => {
-                    confetti.remove();
-                }, duration * 1000);
-            }
         }
     </script>
 </body>
