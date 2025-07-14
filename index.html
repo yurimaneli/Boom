@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAMPO MINADO: BUNKER DIGITAL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0D0D0D;
+            --grid-color: #1A1A1A;
+            --text-color: #00FF00;
+            --danger-color: #FF5555;
+            --highlight-color: #55FF55;
+            --scanline-color: rgba(0, 255, 0, 0.1);
+            --grid-border: #333;
+            --neon-glow: 0 0 10px rgba(85, 255, 85, 0.8);
+            --neon-glow-danger: 0 0 10px rgba(255, 85, 85, 0.8);
+            --neon-glow-blue: 0 0 10px rgba(85, 85, 255, 0.8);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Orbitron', 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 255, 0, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 80% 70%, rgba(255, 0, 0, 0.05) 0%, transparent 20%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        h1 {
+            text-shadow: 0 0 5px var(--highlight-color), 0 0 10px var(--highlight-color);
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            text-align: center;
+            letter-spacing: 3px;
+            font-family: 'Press Start 2P', cursive;
+            position: relative;
+            animation: textGlow 2s infinite alternate;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        @keyframes textGlow {
+            0% { text-shadow: 0 0 5px var(--highlight-color), 0 0 10px var(--highlight-color); }
+            100% { text-shadow: 0 0 15px var(--highlight-color), 0 0 30px var(--highlight-color); }
+        }
+
+        #settings {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #settings select, #settings button {
+            background: rgba(26, 26, 26, 0.8);
+            color: var(--text-color);
+            border: 2px solid var(--highlight-color);
+            padding: 10px 15px;
+            font-family: 'Orbitron', 'Courier New', monospace;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            box-shadow: var(--neon-glow);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #settings select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300FF00'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+            padding-right: 30px;
+        }
+
+        #settings select:focus, #settings button:focus {
+            outline: none;
+            box-shadow: 0 0 15px var(--highlight-color);
+        }
+
+        #settings button:hover {
+            background: var(--highlight-color);
+            color: #000;
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px var(--highlight-color);
+        }
+
+        #settings button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        #settings button:hover::before {
+            left: 100%;
+        }
+
+        #game-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            perspective: 1000px;
+        }
+
+        #game {
+            display: grid;
+            gap: 3px;
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            animation: float 6s ease-in-out infinite;
+            will-change: transform; /* Otimização */
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotateX(0deg) rotateY(0deg); }
+            50% { transform: translateY(-10px) rotateX(2deg) rotateY(2deg); }
+        }
+
+        .cell {
+            width: 35px;
+            height: 35px;
+            background-color: rgba(26, 26, 26, 0.8);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            will-change: transform, box-shadow; /* Otimização */
+        }
+
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0, 255, 0, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .cell:hover {
+            background-color: rgba(34, 139, 34, 0.3);
+            transform: scale(1.1) translateZ(10px);
+            box-shadow: 0 0 15px rgba(85, 255, 85, 0.5);
+            z-index: 10;
+        }
+
+        .cell:hover::before {
+            opacity: 1;
+        }
+
+        .revealed {
+            background-color: rgba(17, 17, 17, 0.9);
+            border-color: rgba(0, 255, 0, 0.5);
+            transform: scale(0.95);
+            animation: reveal 0.5s ease-out;
+        }
+
+        @keyframes reveal {
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+
+        .mine {
+            background-color: var(--danger-color);
+            animation: explode 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+            box-shadow: var(--neon-glow-danger);
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            20% { transform: scale(1.5); opacity: 0.8; }
+            40% { transform: scale(0.8); opacity: 1; }
+            60% { transform: scale(1.2); opacity: 0.9; }
+            80% { transform: scale(0.9); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .flagged {
+            color: var(--danger-color);
+            position: relative;
+        }
+
+        .flagged::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(255, 85, 85, 0.2) 0%, transparent 70%);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                var(--scanline-color) 1px,
+                transparent 2px
+            );
+            background-size: 100% 4px;
+            animation: scan 4s linear infinite;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+
+        @keyframes scan {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+
+        .glitch {
+            position: relative;
+        }
+
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+        }
+
+        .glitch::before {
+            left: 2px;
+            text-shadow: -2px 0 #FF0000;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+
+        .glitch::after {
+            left: -2px;
+            text-shadow: -2px 0 #0000FF;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim {
+            0% { clip: rect(31px, 9999px, 94px, 0); }
+            10% { clip: rect(112px, 9999px, 76px, 0); }
+            20% { clip: rect(85px, 9999px, 77px, 0); }
+            30% { clip: rect(27px, 9999px, 97px, 0); }
+            40% { clip: rect(64px, 9999px, 98px, 0); }
+            50% { clip: rect(61px, 9999px, 85px, 0); }
+            60% { clip: rect(99px, 9999px, 114px, 0); }
+            70% { clip: rect(34px, 9999px, 115px, 0); }
+            80% { clip: rect(98px, 9999px, 129px, 0); }
+            90% { clip: rect(43px, 9999px, 96px, 0); }
+            100% { clip: rect(82px, 9999px, 64px, 0); }
+        }
+
+        @keyframes glitch-anim2 {
+            0% { clip: rect(65px, 9999px, 119px, 0); }
+            10% { clip: rect(66px, 9999px, 122px, 0); }
+            20% { clip: rect(29px, 9999px, 128px, 0); }
+            30% { clip: rect(60px, 9999px, 87px, 0); }
+            40% { clip: rect(60px, 9999px, 91px, 0); }
+            50% { clip: rect(66px, 9999px, 117px, 0); }
+            60% { clip: rect(88px, 9999px, 82px, 0); }
+            70% { clip: rect(98px, 9999px, 70px, 0); }
+            80% { clip: rect(63px, 9999px, 60px, 0); }
+            90% { clip: rect(104px, 9999px, 47px, 0); }
+            100% { clip: rect(24px, 9999px, 130px, 0); }
+        }
+
+        #game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            font-size: 3rem;
+            text-transform: uppercase;
+            font-family: 'Press Start 2P', cursive;
+            color: white;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        #game-over::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at center, rgba(255, 0, 0, 0.2) 0%, transparent 70%),
+                repeating-linear-gradient(45deg, rgba(255, 0, 0, 0.1) 0px, rgba(255, 0, 0, 0.1) 1px, transparent 1px, transparent 5px),
+                repeating-linear-gradient(-45deg, rgba(255, 0, 0, 0.1) 0px, rgba(255, 0, 0, 0.1) 1px, transparent 1px, transparent 5px);
+            pointer-events: none;
+        }
+
+        #game-over.win::before {
+            background: 
+                radial-gradient(circle at center, rgba(0, 255, 0, 0.2) 0%, transparent 70%),
+                repeating-linear-gradient(45deg, rgba(0, 255, 0, 0.1) 0px, rgba(0, 255, 0, 0.1) 1px, transparent 1px, transparent 5px),
+                repeating-linear-gradient(-45deg, rgba(0, 255, 0, 0.1) 0px, rgba(0, 255, 0, 0.1) 1px, transparent 1px, transparent 5px);
+        }
+
+        #game-over-text {
+            font-size: 4rem;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px currentColor;
+            position: relative;
+            animation: gameOverText 1.5s infinite alternate;
+        }
+
+        @keyframes gameOverText {
+            0% { transform: scale(1); text-shadow: 0 0 10px currentColor; }
+            100% { transform: scale(1.05); text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+        }
+
+        #game-over button {
+            background: linear-gradient(45deg, #FF0000, #FF4500);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-top: 30px;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(255, 69, 0, 0.7);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #game-over.win button {
+            background: linear-gradient(45deg, #00FF00, #00FF7F);
+            box-shadow: 0 0 15px rgba(0, 255, 127, 0.7);
+        }
+
+        #game-over button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 25px rgba(255, 69, 0, 0.9);
+        }
+
+        #game-over.win button:hover {
+            box-shadow: 0 0 25px rgba(0, 255, 127, 0.9);
+        }
+
+        #game-over button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                transparent 0%,
+                transparent 45%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 55%,
+                transparent 100%
+            );
+            transform: rotate(30deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -50%; top: -50%; }
+            100% { left: 150%; top: 150%; }
+        }
+
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 0 0 5px currentColor;
+            animation: slideIn 0.8s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #timer {
+            color: var(--danger-color);
+            position: relative;
+        }
+
+        #timer::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--danger-color);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 1s linear;
+        }
+
+        #mines-count {
+            color: var(--highlight-color);
+        }
+
+        #disarms-left {
+            color: #55AAFF;
+        }
+
+        /* Modal de desarme */
+        #disarm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        #disarm-modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at center, rgba(255, 0, 0, 0.1) 0%, transparent 70%),
+                repeating-linear-gradient(45deg, rgba(255, 0, 0, 0.05) 0px, rgba(255, 0, 0, 0.05) 1px, transparent 1px, transparent 5px),
+                repeating-linear-gradient(-45deg, rgba(255, 0, 0, 0.05) 0px, rgba(255, 0, 0, 0.05) 1px, transparent 1px, transparent 5px);
+            pointer-events: none;
+        }
+
+        #disarm-modal h2 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px var(--danger-color);
+            animation: pulse 2s infinite;
+        }
+
+        #disarm-timer {
+            font-size: 3rem;
+            margin-bottom: 40px;
+            color: #FF5555;
+            text-shadow: 0 0 15px var(--danger-color);
+            font-family: 'Orbitron', sans-serif;
+            position: relative;
+        }
+
+        #disarm-timer::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            border: 3px solid var(--danger-color);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--danger-color);
+            opacity: 0;
+            animation: pulseBorder 1s infinite;
+        }
+
+        @keyframes pulseBorder {
+            0% { opacity: 0; width: 100%; height: 100%; }
+            50% { opacity: 1; }
+            100% { opacity: 0; width: 140%; height: 140%; }
+        }
+
+        #wires-container {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+            perspective: 1000px;
+        }
+
+        .wire {
+            width: 80px;
+            height: 160px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            will-change: transform, box-shadow; /* Otimização */
+        }
+
+        .wire::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%, rgba(0, 0, 0, 0.2) 100%);
+        }
+
+        .wire:hover {
+            transform: translateY(-10px) rotateX(10deg);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .wire:active {
+            transform: translateY(-5px) scale(0.98);
+        }
+
+        #wire-red {
+            background: linear-gradient(to bottom, #FF0000, #8B0000);
+            border: 2px solid #FF5555;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+            animation: wireGlowRed 2s infinite alternate;
+        }
+
+        @keyframes wireGlowRed {
+            0% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.5); }
+            100% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 0, 0, 0.6); }
+        }
+
+        #wire-blue {
+            background: linear-gradient(to bottom, #1E90FF, #00008B);
+            border: 2px solid #5555FF;
+            box-shadow: 0 0 20px rgba(30, 144, 255, 0.5);
+            animation: wireGlowBlue 2s infinite alternate;
+        }
+
+        @keyframes wireGlowBlue {
+            0% { box-shadow: 0 0 20px rgba(30, 144, 255, 0.5); }
+            100% { box-shadow: 0 0 30px rgba(30, 144, 255, 0.8), 0 0 40px rgba(30, 144, 255, 0.6); }
+        }
+
+        #wire-yellow {
+            background: linear-gradient(to bottom, #FFD700, #B8860B);
+            border: 2px solid #FFEE55;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            animation: wireGlowYellow 2s infinite alternate;
+        }
+
+        @keyframes wireGlowYellow {
+            0% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+            100% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.6); }
+        }
+
+        .wire-cut {
+            animation: wireCut 0.5s forwards;
+        }
+
+        @keyframes wireCut {
+            0% { transform: translateY(0) rotateX(0); }
+            50% { transform: translateY(20px) rotateX(60deg); opacity: 1; }
+            100% { transform: translateY(100px) rotateX(85deg); opacity: 0; }
+        }
+
+        #disarm-result {
+            font-size: 1.8rem;
+            margin-top: 30px;
+            text-align: center;
+            min-height: 50px;
+            text-shadow: 0 0 10px currentColor;
+            animation: fadeInOut 0.5s;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Efeitos de partículas */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .particle {
+            position: absolute;
+            background-color: var(--highlight-color);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            will-change: transform, opacity; /* Otimização */
+        }
+
+        /* Efeito de confete */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+            z-index: 999;
+            animation: confettiFall 5s linear forwards;
+            will-change: transform, opacity; /* Otimização */
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            #settings {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            #hud {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .cell {
+                width: 28px;
+                height: 28px;
+                font-size: 0.7rem;
+            }
+            
+            #wires-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .wire {
+                width: 70px;
+                height: 120px;
+                font-size: 1rem;
+            }
+            
+            #game-over-text {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .cell {
+                width: 25px;
+                height: 25px;
+            }
+            
+            #game-over-text {
+                font-size: 2rem;
+            }
+            
+            #disarm-modal h2 {
+                font-size: 1.5rem;
+            }
+            
+            #disarm-timer {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="glitch" data-text="CAMPO MINADO: BUNKER DIGITAL">CAMPO MINADO: BUNKER DIGITAL</h1>
+    
+    <div id="settings">
+        <select id="difficulty">
+            <option value="easy">Fácil (8x8, 10 minas)</option>
+            <option value="medium">Médio (12x12, 25 minas)</option>
+            <option value="hard">Difícil (16x16, 50 minas)</option>
+        </select>
+        
+        <button id="start-btn">INICIAR MISSÃO</button>
+        <button id="theme-btn">TEMA: BUNKER</button>
+    </div>
+    
+    <div id="hud">
+        <div id="timer">⏱️ 000</div>
+        <div id="disarms-left">🔧 <span id="disarms-count">3</span></div>
+        <div id="mines-count">💣 <span id="mines-left">0</span></div>
+    </div>
+    
+    <div id="game-container">
+        <div id="game"></div>
+    </div>
+    
+    <div class="scanline"></div>
+    <div class="particles" id="particles"></div>
+    
+    <div id="game-over">
+        <div id="game-over-text">MISSÃO FALHADA</div>
+        <button id="restart-btn">REINICIAR</button>
+    </div>
+    
+    <!-- Modal de desarme -->
+    <div id="disarm-modal">
+        <h2>DESARMAR BOMBA</h2>
+        <div id="disarm-timer">20</div>
+        <div id="wires-container">
+            <div id="wire-red" class="wire" data-color="red"></div>
+            <div id="wire-blue" class="wire" data-color="blue"></div>
+            <div id="wire-yellow" class="wire" data-color="yellow"></div>
+        </div>
+        <div id="disarm-result"></div>
+    </div>
+    
+    <audio id="click-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3"></audio>
+    <audio id="explosion-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-explosion-1684.mp3"></audio>
+    <audio id="flag-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-interface-hint-notification-911.mp3"></audio>
+    <audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3"></audio>
+    <audio id="bg-music" loop src="https://assets.mixkit.co/music/preview/mixkit-dark-ambient-1223.mp3"></audio>
+    <audio id="tick-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-fast-clock-ticking-1064.mp3"></audio>
+    <audio id="wire-cut-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-sci-fi-positive-interface-beep-257.mp3"></audio>
+    <audio id="countdown-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-digital-clock-digital-alarm-buzzer-992.mp3"></audio>
+    <audio id="success-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"></audio>
+    
+    <script>
+        // Configurações do jogo
+        const config = {
+            easy: { width: 8, height: 8, mines: 10 },
+            medium: { width: 12, height: 12, mines: 25 },
+            hard: { width: 16, height: 16, mines: 50 }
+        };
+        
+        // Estado do jogo
+        let gameState = {
+            board: [],
+            revealed: [],
+            flagged: [],
+            gameOver: false,
+            gameWon: false,
+            minesLeft: 0,
+            disarmsLeft: 3,
+            currentBomb: null,
+            startTime: 0,
+            timerInterval: null,
+            disarmTimerInterval: null,
+            disarmTimeLeft: 20,
+            correctWire: null,
+            theme: 'bunker',
+            wireHistory: [],
+            lastWireColor: null,
+            wirePatterns: [
+                ['red', 'blue', 'yellow'],
+                ['blue', 'yellow', 'red'],
+                ['yellow', 'red', 'blue'],
+                ['red', 'yellow', 'blue'],
+                ['blue', 'red', 'yellow'],
+                ['yellow', 'blue', 'red']
+            ],
+            currentPattern: 0
+        };
+        
+        // Elementos DOM
+        const gameContainer = document.getElementById('game');
+        const difficultySelect = document.getElementById('difficulty');
+        const startBtn = document.getElementById('start-btn');
+        const themeBtn = document.getElementById('theme-btn');
+        const gameOverScreen = document.getElementById('game-over');
+        const gameOverText = document.getElementById('game-over-text');
+        const restartBtn = document.getElementById('restart-btn');
+        const minesLeftDisplay = document.getElementById('mines-left');
+        const disarmsCountDisplay = document.getElementById('disarms-count');
+        const timerDisplay = document.getElementById('timer');
+        const disarmModal = document.getElementById('disarm-modal');
+        const disarmTimerDisplay = document.getElementById('disarm-timer');
+        const disarmResultDisplay = document.getElementById('disarm-result');
+        const particlesContainer = document.getElementById('particles');
+        
+        // Sons
+        const clickSound = document.getElementById('click-sound');
+        const explosionSound = document.getElementById('explosion-sound');
+        const flagSound = document.getElementById('flag-sound');
+        const winSound = document.getElementById('win-sound');
+        const bgMusic = document.getElementById('bg-music');
+        const tickSound = document.getElementById('tick-sound');
+        const wireCutSound = document.getElementById('wire-cut-sound');
+        const countdownSound = document.getElementById('countdown-sound');
+        const successSound = document.getElementById('success-sound');
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            startBtn.addEventListener('click', startGame);
+            restartBtn.addEventListener('click', startGame);
+            themeBtn.addEventListener('click', toggleTheme);
+            
+            // Configura volume padrão
+            bgMusic.volume = 0.3;
+            explosionSound.volume = 0.5;
+            winSound.volume = 0.6;
+            
+            // Eventos dos fios
+            document.querySelectorAll('.wire').forEach(wire => {
+                wire.addEventListener('click', handleWireCut);
+            });
+            
+            // Inicia com tema escuro
+            setTheme('bunker');
+            
+            // Efeito de partículas
+            createParticles();
+        });
+        
+        // Cria partículas flutuantes
+        function createParticles() {
+            particlesContainer.innerHTML = '';
+            const particleCount = 20; // Reduzido de 30 para 20
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Tamanho aleatório
+                const size = Math.random() * 3 + 1;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Posição aleatória
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Cor baseada no tema
+                const colors = gameState.theme === 'bunker' 
+                    ? ['#00FF00', '#55FF55', '#00AA00'] 
+                    : ['#FFFFFF', '#CCCCCC', '#AAAAAA'];
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Animação
+                const duration = Math.random() * 20 + 10;
+                const delay = Math.random() * 5;
+                particle.style.animation = `float ${duration}s linear ${delay}s infinite`;
+                
+                particlesContainer.appendChild(particle);
+                
+                // Configura animação de flutuação
+                animateParticle(particle, duration);
+            }
+        }
+        
+        // Animação de partículas
+        function animateParticle(particle, duration) {
+            const startX = Math.random() * 100;
+            const startY = Math.random() * 100;
+            
+            const keyframes = [
+                { 
+                    transform: `translate(${startX}%, ${startY}%)`, 
+                    opacity: 0 
+                },
+                { 
+                    transform: `translate(${startX + (Math.random() * 20 - 10)}%, ${startY + (Math.random() * 20 - 10)}%)`, 
+                    opacity: 0.6 
+                },
+                { 
+                    transform: `translate(${startX + (Math.random() * 40 - 20)}%, ${startY + (Math.random() * 40 - 20)}%)`, 
+                    opacity: 0 
+                }
+            ];
+            
+            const options = {
+                duration: duration * 1000,
+                iterations: Infinity,
+                easing: 'linear'
+            };
+            
+            particle.animate(keyframes, options);
+        }
+        
+        // Alterna entre temas
+        function toggleTheme() {
+            gameState.theme = gameState.theme === 'bunker' ? 'classic' : 'bunker';
+            setTheme(gameState.theme);
+            themeBtn.textContent = `TEMA: ${gameState.theme.toUpperCase()}`;
+            createParticles();
+        }
+        
+        function setTheme(theme) {
+            document.documentElement.style.setProperty('--bg-color', theme === 'bunker' ? '#0D0D0D' : '#121212');
+            document.documentElement.style.setProperty('--grid-color', theme === 'bunker' ? 'rgba(26, 26, 26, 0.8)' : 'rgba(51, 51, 51, 0.8)');
+            document.documentElement.style.setProperty('--text-color', theme === 'bunker' ? '#00FF00' : '#FFFFFF');
+            document.documentElement.style.setProperty('--danger-color', theme === 'bunker' ? '#FF5555' : '#FF0000');
+            document.documentElement.style.setProperty('--highlight-color', theme === 'bunker' ? '#55FF55' : '#4CAF50');
+            document.documentElement.style.setProperty('--scanline-color', theme === 'bunker' ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 255, 255, 0.05)');
+            document.documentElement.style.setProperty('--grid-border', theme === 'bunker' ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)');
+        }
+        
+        // Inicia o jogo
+        function startGame() {
+            // Reinicia estado
+            gameState.gameOver = false;
+            gameState.gameWon = false;
+            gameState.revealed = [];
+            gameState.flagged = [];
+            gameState.disarmsLeft = 3;
+            gameState.currentBomb = null;
+            gameState.wireHistory = [];
+            gameState.lastWireColor = null;
+            gameState.currentPattern = Math.floor(Math.random() * gameState.wirePatterns.length);
+            
+            // Para timers anteriores
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            if (gameState.disarmTimerInterval) clearInterval(gameState.disarmTimerInterval);
+            
+            // Reseta HUD
+            timerDisplay.textContent = '⏱️ 000';
+            disarmsCountDisplay.textContent = gameState.disarmsLeft;
+            
+            // Esconde telas de game over e desarme
+            gameOverScreen.style.display = 'none';
+            disarmModal.style.display = 'none';
+            
+            // Pega configurações
+            const difficulty = difficultySelect.value;
+            const { width, height, mines } = config[difficulty];
+            
+            gameState.minesLeft = mines;
+            minesLeftDisplay.textContent = mines;
+            
+            // Cria tabuleiro
+            gameState.board = createBoard(width, height, mines);
+            
+            // Renderiza grade
+            renderBoard(width, height);
+            
+            // Inicia música
+            bgMusic.currentTime = 0;
+            bgMusic.play();
+            
+            // Efeito de entrada
+            animateBoardEntrance();
+        }
+        
+        // Animação de entrada do tabuleiro
+        function animateBoardEntrance() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                const row = Math.floor(index / gameState.board[0].length);
+                const col = index % gameState.board[0].length;
+                
+                cell.style.opacity = '0';
+                cell.style.transform = 'scale(0.5) translateY(50px)';
+                
+                // Animação em cascata
+                setTimeout(() => {
+                    cell.style.transition = 'all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+                    cell.style.opacity = '1';
+                    cell.style.transform = 'scale(1) translateY(0)';
+                    
+                    // Remove a transição após a animação
+                    setTimeout(() => {
+                        cell.style.transition = '';
+                    }, 500);
+                }, 50 * (row + col));
+            });
+        }
+        
+        // Cria o tabuleiro com minas
+        function createBoard(width, height, mines) {
+            const board = Array(height).fill().map(() => Array(width).fill(0));
+            
+            // Coloca minas aleatoriamente
+            let minesPlaced = 0;
+            while (minesPlaced < mines) {
+                const x = Math.floor(Math.random() * width);
+                const y = Math.floor(Math.random() * height);
+                
+                if (board[y][x] !== -1) {
+                    board[y][x] = -1; // -1 representa uma mina
+                    minesPlaced++;
+                    
+                    // Incrementa contagem ao redor
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            
+                            if (
+                                nx >= 0 && nx < width &&
+                                ny >= 0 && ny < height &&
+                                board[ny][nx] !== -1
+                            ) {
+                                board[ny][nx]++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return board;
+        }
+        
+        // Renderiza o tabuleiro
+        function renderBoard(width, height) {
+            gameContainer.innerHTML = '';
+            gameContainer.style.gridTemplateColumns = `repeat(${width}, 35px)`;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    
+                    // Adiciona eventos
+                    cell.addEventListener('click', () => handleClick(x, y));
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        handleRightClick(x, y);
+                    });
+                    
+                    // Efeito hover
+                    cell.addEventListener('mouseenter', () => {
+                        if (!gameState.gameOver && !gameState.revealed.some(c => c.x === x && c.y === y)) {
+                            cell.style.transform = 'scale(1.1) translate3d(0, 0, 10px)';
+                            cell.style.boxShadow = '0 0 15px rgba(85, 255, 85, 0.5)';
+                            
+                            // Efeito de partículas no hover
+                            createHoverParticles(cell);
+                        }
+                    });
+                    
+                    cell.addEventListener('mouseleave', () => {
+                        if (!gameState.gameOver && !gameState.revealed.some(c => c.x === x && c.y === y)) {
+                            cell.style.transform = 'scale(1)';
+                            cell.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+                        }
+                    });
+                    
+                    gameContainer.appendChild(cell);
+                }
+            }
+        }
+        
+        // Cria partículas no hover da célula
+        function createHoverParticles(cell) {
+            const rect = cell.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 3; i++) { // Reduzido de 5 para 3
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.position = 'fixed';
+                particle.style.width = '3px';
+                particle.style.height = '3px';
+                particle.style.backgroundColor = gameState.theme === 'bunker' ? '#55FF55' : '#4CAF50';
+                particle.style.borderRadius = '50%';
+                particle.style.pointerEvents = 'none';
+                particle.style.left = `${centerX}px`;
+                particle.style.top = `${centerY}px`;
+                particle.style.opacity = '0.8';
+                particle.style.willChange = 'transform, opacity'; // Otimização
+                
+                document.body.appendChild(particle);
+                
+                // Animação
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 20 + 10;
+                const duration = Math.random() * 1000 + 500;
+                
+                const animation = particle.animate([
+                    { 
+                        transform: 'translate3d(0, 0, 0) scale(1)', 
+                        opacity: 0.8 
+                    },
+                    { 
+                        transform: `translate3d(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px, 0) scale(0.2)`, 
+                        opacity: 0 
+                    }
+                ], {
+                    duration: duration,
+                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+                });
+                
+                animation.onfinish = () => particle.remove();
+            }
+        }
+        
+        // Atualiza o timer
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            timerDisplay.textContent = `⏱️ ${elapsed.toString().padStart(3, '0')}`;
+            
+            // Barra de progresso
+            const timerBar = document.querySelector('#timer::after');
+            
+            // Efeito sonoro de tick a cada 10 segundos
+            if (elapsed > 0 && elapsed % 10 === 0) {
+                tickSound.currentTime = 0;
+                tickSound.play();
+            }
+        }
+        
+        // Clique esquerdo (revelar célula)
+        function handleClick(x, y) {
+            if (gameState.gameOver || gameState.flagged.some(f => f.x === x && f.y === y)) return;
+            
+            // Primeiro clique? Inicia o jogo
+            if (gameState.revealed.length === 0) {
+                gameState.startTime = Date.now();
+                gameState.timerInterval = setInterval(updateTimer, 1000);
+            }
+            
+            // Já revelado? Ignora
+            if (gameState.revealed.some(c => c.x === x && c.y === y)) return;
+            
+            // É uma mina?
+            if (gameState.board[y][x] === -1) {
+                // Verifica se ainda tem desarmes disponíveis
+                if (gameState.disarmsLeft > 0) {
+                    startDisarmSequence(x, y);
+                    return;
+                } else {
+                    // Sem desarmes restantes - game over
+                    const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+                    cell.classList.add('mine');
+                    
+                    // Efeito de explosão em cadeia
+                    setTimeout(() => {
+                        explodeChain(x, y);
+                    }, 300);
+                    
+                    return;
+                }
+            }
+            
+            // Adiciona aos revelados
+            gameState.revealed.push({ x, y });
+            
+            // Toca som
+            clickSound.currentTime = 0;
+            clickSound.play();
+            
+            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            
+            // Revela célula com animação
+            revealCellWithAnimation(cell, x, y);
+            
+            // Verifica vitória
+            checkWin();
+        }
+        
+        // Revela célula com animação
+        function revealCellWithAnimation(cell, x, y) {
+            cell.classList.add('revealed');
+            
+            // Animação de revelação
+            const animation = cell.animate([
+                { transform: 'scale(1)', opacity: 1 },
+                { transform: 'scale(1.2)', opacity: 0.8 },
+                { transform: 'scale(0.9)', opacity: 1 },
+                { transform: 'scale(1)', opacity: 1 }
+            ], {
+                duration: 300,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+            
+            animation.onfinish = () => {
+                // Mostra número ou vazio
+                if (gameState.board[y][x] > 0) {
+                    cell.textContent = gameState.board[y][x];
+                    
+                    // Cores diferentes para números diferentes
+                    const colors = [
+                        '', // 0 - não usado
+                        '#1E90FF', // 1 - Azul
+                        '#00AA00', // 2 - Verde
+                        '#FF0000', // 3 - Vermelho
+                        '#000080', // 4 - Azul escuro
+                        '#800000', // 5 - Marrom
+                        '#00FFFF', // 6 - Ciano
+                        '#000000', // 7 - Preto
+                        '#808080'  // 8 - Cinza
+                    ];
+                    
+                    cell.style.color = colors[gameState.board[y][x]];
+                    cell.style.textShadow = `0 0 5px ${colors[gameState.board[y][x]]}`;
+                } else {
+                    // Revela células adjacentes se for vazio
+                    revealAdjacent(x, y);
+                }
+            };
+        }
+        
+        // Explosão em cadeia
+        function explodeChain(x, y) {
+            const width = gameState.board[0].length;
+            const height = gameState.board.length;
+            
+            // Explode a célula clicada
+            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            cell.classList.add('mine');
+            
+            // Toca som de explosão
+            explosionSound.currentTime = 0;
+            explosionSound.play();
+            
+            // Cria efeito de explosão
+            createExplosionEffect(x, y);
+            
+            // Explode minas próximas com delay
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    
+                    if (
+                        nx >= 0 && nx < width &&
+                        ny >= 0 && ny < height &&
+                        gameState.board[ny][nx] === -1 &&
+                        !gameState.revealed.some(c => c.x === nx && c.y === ny)
+                    ) {
+                        setTimeout(() => {
+                            explodeChain(nx, ny);
+                        }, Math.random() * 500 + 200);
+                    }
+                }
+            }
+            
+            // Game over após um pequeno delay
+            setTimeout(() => {
+                gameOver(false);
+            }, 1000);
+        }
+        
+        // Cria efeito de explosão
+        function createExplosionEffect(x, y) {
+            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            const rect = cell.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 10; i++) { // Reduzido de 20 para 10
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.position = 'fixed';
+                particle.style.width = `${Math.random() * 4 + 3}px`; // Tamanho reduzido
+                particle.style.height = particle.style.width;
+                particle.style.backgroundColor = `hsl(${Math.random() * 30 + 10}, 100%, 50%)`;
+                particle.style.borderRadius = '50%';
+                particle.style.pointerEvents = 'none';
+                particle.style.left = `${centerX}px`;
+                particle.style.top = `${centerY}px`;
+                particle.style.opacity = '1';
+                particle.style.zIndex = '200';
+                particle.style.willChange = 'transform, opacity'; // Otimização
+                
+                document.body.appendChild(particle);
+                
+                // Animação
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 50 + 30;
+                const duration = Math.random() * 1000 + 500;
+                
+                const animation = particle.animate([
+                    { 
+                        transform: 'translate3d(0, 0, 0) scale(1)', 
+                        opacity: 1,
+                        boxShadow: '0 0 10px currentColor'
+                    },
+                    { 
+                        transform: `translate3d(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px, 0) scale(0.2)`, 
+                        opacity: 0,
+                        boxShadow: '0 0 20px currentColor'
+                    }
+                ], {
+                    duration: duration,
+                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+                });
+                
+                animation.onfinish = () => particle.remove();
+            }
+        }
+        
+        // Inicia sequência de desarme
+        function startDisarmSequence(x, y) {
+            gameState.currentBomb = { x, y };
+            gameState.disarmTimeLeft = 20;
+            
+            // Gera a cor correta para desarme com padrão aleatório
+            generateCorrectWireColor();
+            
+            // Mostra modal de desarme
+            disarmModal.style.display = 'flex';
+            disarmTimerDisplay.textContent = gameState.disarmTimeLeft;
+            disarmResultDisplay.textContent = '';
+            
+            // Reset wires
+            document.querySelectorAll('.wire').forEach(wire => {
+                wire.classList.remove('wire-cut');
+                wire.style.opacity = '1';
+                wire.style.transform = '';
+                wire.style.pointerEvents = 'auto';
+            });
+            
+            // Inicia contagem regressiva
+            gameState.disarmTimerInterval = setInterval(() => {
+                gameState.disarmTimeLeft--;
+                disarmTimerDisplay.textContent = gameState.disarmTimeLeft;
+                
+                // Efeito visual de urgência
+                if (gameState.disarmTimeLeft <= 10) {
+                    disarmTimerDisplay.style.animation = 'pulse 0.5s infinite alternate';
+                    
+                    // Piscar vermelho nos últimos 5 segundos
+                    if (gameState.disarmTimeLeft <= 5) {
+                        disarmTimerDisplay.style.color = gameState.disarmTimeLeft % 2 === 0 ? '#FF0000' : '#FFFFFF';
+                    }
+                }
+                
+                // Toca som de contagem regressiva nos últimos 5 segundos
+                if (gameState.disarmTimeLeft <= 5) {
+                    countdownSound.currentTime = 0;
+                    countdownSound.play();
+                }
+                
+                // Tempo esgotado
+                if (gameState.disarmTimeLeft <= 0) {
+                    clearInterval(gameState.disarmTimerInterval);
+                    disarmFailed();
+                }
+            }, 1000);
+        }
+        
+        // Gera a cor correta para desarme com padrão aleatório
+        function generateCorrectWireColor() {
+            // Pega o padrão atual
+            const pattern = gameState.wirePatterns[gameState.currentPattern];
+            
+            // Determina a cor correta baseada no número de desarmes já feitos
+            const attemptIndex = gameState.wireHistory.length % pattern.length;
+            gameState.correctWire = pattern[attemptIndex];
+            
+            // Armazena a cor escolhida para o histórico
+            gameState.lastWireColor = gameState.correctWire;
+            
+            // Dica visual (piscar o fio correto rapidamente)
+            const correctWireElement = document.querySelector(`.wire[data-color="${gameState.correctWire}"]`);
+            if (correctWireElement) {
+                const originalColor = correctWireElement.style.backgroundColor;
+                
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        correctWireElement.style.backgroundColor = i % 2 === 0 ? 'white' : originalColor;
+                    }, i * 200);
+                }
+                
+                setTimeout(() => {
+                    correctWireElement.style.backgroundColor = originalColor;
+                }, 600);
+            }
+        }
+        
+        // Manipula corte de fio
+        function handleWireCut(e) {
+            const wireElement = e.target;
+            const wireColor = wireElement.dataset.color;
+            
+            // Desabilita outros cliques
+            document.querySelectorAll('.wire').forEach(w => {
+                w.style.pointerEvents = 'none';
+            });
+            
+            // Toca som de corte
+            wireCutSound.currentTime = 0;
+            wireCutSound.play();
+            
+            // Animação de corte
+            wireElement.classList.add('wire-cut');
+            
+            // Verifica se acertou após um pequeno delay
+            setTimeout(() => {
+                if (wireColor === gameState.correctWire) {
+                    disarmSuccess();
+                } else {
+                    disarmFailed();
+                }
+            }, 500);
+        }
+        
+        // Desarme bem-sucedido
+        function disarmSuccess() {
+            clearInterval(gameState.disarmTimerInterval);
+            
+            // Adiciona a cor ao histórico
+            gameState.wireHistory.push(gameState.correctWire);
+            
+            // Marca a bomba como revelada (mas não explode)
+            gameState.revealed.push(gameState.currentBomb);
+            const cell = document.querySelector(`.cell[data-x="${gameState.currentBomb.x}"][data-y="${gameState.currentBomb.y}"]`);
+            cell.classList.add('revealed');
+            cell.textContent = '💣';
+            cell.style.fontSize = '20px';
+            
+            // Animação de sucesso
+            cell.animate([
+                { transform: 'scale(1)', opacity: 1 },
+                { transform: 'scale(1.5)', opacity: 0.8 },
+                { transform: 'scale(1)', opacity: 1 }
+            ], {
+                duration: 500,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+            
+            // Atualiza contador de desarmes
+            gameState.disarmsLeft--;
+            disarmsCountDisplay.textContent = gameState.disarmsLeft;
+            
+            // Animação no HUD
+            const disarmsElement = document.querySelector('#disarms-left');
+            disarmsElement.animate([
+                { transform: 'scale(1)', color: '#55AAFF' },
+                { transform: 'scale(1.5)', color: '#FFFFFF' },
+                { transform: 'scale(1)', color: '#55AAFF' }
+            ], {
+                duration: 500,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+            
+            // Mostra resultado
+            disarmResultDisplay.textContent = 'BOMBA DESARMADA!';
+            disarmResultDisplay.style.color = '#00FF00';
+            
+            // Toca som de sucesso
+            successSound.currentTime = 0;
+            successSound.play();
+            
+            // Efeito de partículas
+            createSuccessParticles();
+            
+            // Esconde modal após 2 segundos
+            setTimeout(() => {
+                disarmModal.style.display = 'none';
+                
+                // Habilita cliques novamente
+                document.querySelectorAll('.wire').forEach(w => {
+                    w.style.pointerEvents = 'auto';
+                });
+                
+                // Verifica vitória
+                checkWin();
+            }, 2000);
+        }
+        
+        // Cria partículas de sucesso
+        function createSuccessParticles() {
+            for (let i = 0; i < 20; i++) { // Reduzido de 30 para 20
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.backgroundColor = `hsl(${Math.random() * 60 + 100}, 100%, 50%)`;
+                confetti.style.willChange = 'transform, opacity'; // Otimização
+                document.body.appendChild(confetti);
+                
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+        
+        // Desarme falhou
+        function disarmFailed() {
+            clearInterval(gameState.disarmTimerInterval);
+            
+            // Mostra a bomba
+            const cell = document.querySelector(`.cell[data-x="${gameState.currentBomb.x}"][data-y="${gameState.currentBomb.y}"]`);
+            cell.classList.add('mine');
+            
+            // Animação de explosão
+            cell.animate([
+                { transform: 'scale(1)', opacity: 1 },
+                { transform: 'scale(1.5)', opacity: 0.8 },
+                { transform: 'scale(0.8)', opacity: 1 },
+                { transform: 'scale(1.2)', opacity: 0.9 },
+                { transform: 'scale(1)', opacity: 1 }
+            ], {
+                duration: 800,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+            
+            // Mostra resultado
+            disarmResultDisplay.textContent = 'BOOM!';
+            disarmResultDisplay.style.color = '#FF0000';
+            
+            // Toca som de explosão
+            explosionSound.currentTime = 0;
+            explosionSound.play();
+            
+            // Esconde modal após 1 segundo e chama game over
+            setTimeout(() => {
+                disarmModal.style.display = 'none';
+                
+                // Habilita cliques novamente
+                document.querySelectorAll('.wire').forEach(w => {
+                    w.style.pointerEvents = 'auto';
+                });
+                
+                gameOver(false);
+            }, 1000);
+        }
+        
+        // Clique direito (bandeira)
+        function handleRightClick(x, y) {
+            if (gameState.gameOver || gameState.revealed.some(c => c.x === x && c.y === y)) return;
+            
+            const flagIndex = gameState.flagged.findIndex(f => f.x === x && f.y === y);
+            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            
+            // Toca som
+            flagSound.currentTime = 0;
+            flagSound.play();
+            
+            if (flagIndex === -1) {
+                // Adiciona bandeira
+                gameState.flagged.push({ x, y });
+                cell.classList.add('flagged');
+                cell.textContent = '⚑';
+                gameState.minesLeft--;
+                
+                // Animação
+                cell.animate([
+                    { transform: 'scale(0.5)', opacity: 0 },
+                    { transform: 'scale(1.2)', opacity: 1 },
+                    { transform: 'scale(1)', opacity: 1 }
+                ], {
+                    duration: 300,
+                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+                });
+            } else {
+                // Remove bandeira
+                gameState.flagged.splice(flagIndex, 1);
+                cell.classList.remove('flagged');
+                cell.textContent = '';
+                gameState.minesLeft++;
+                
+                // Animação
+                cell.animate([
+                    { transform: 'scale(1)', opacity: 1 },
+                    { transform: 'scale(1.2)', opacity: 0.8 },
+                    { transform: 'scale(0.5)', opacity: 0 }
+                ], {
+                    duration: 200,
+                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                    fill: 'forwards'
+                });
+                
+                setTimeout(() => {
+                    cell.textContent = '';
+                    cell.style.transform = 'scale(1)';
+                    cell.style.opacity = '1';
+                }, 200);
+            }
+            
+            minesLeftDisplay.textContent = gameState.minesLeft;
+            
+            // Animação no contador
+            const minesElement = document.querySelector('#mines-count');
+            minesElement.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.3)' },
+                { transform: 'scale(1)' }
+            ], {
+                duration: 300,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+        }
+        
+        // Revela células adjacentes
+        function revealAdjacent(x, y) {
+            const width = gameState.board[0].length;
+            const height = gameState.board.length;
+            
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    
+                    if (
+                        nx >= 0 && nx < width &&
+                        ny >= 0 && ny < height &&
+                        !gameState.revealed.some(c => c.x === nx && c.y === ny)
+                    ) {
+                        // Pequeno delay para efeito em cascata
+                        setTimeout(() => {
+                            handleClick(nx, ny);
+                        }, Math.sqrt(dx * dx + dy * dy) * 100);
+                    }
+                }
+            }
+        }
+        
+        // Verifica se o jogador venceu
+        function checkWin() {
+            const width = gameState.board[0].length;
+            const height = gameState.board.length;
+            const totalCells = width * height;
+            const mineCount = gameState.board.flat().filter(cell => cell === -1).length;
+            
+            if (gameState.revealed.length === totalCells - mineCount) {
+                gameOver(true);
+            }
+        }
+        
+        // Fim de jogo
+        function gameOver(isWin) {
+            gameState.gameOver = true;
+            gameState.gameWon = isWin;
+            
+            // Para os timers
+            clearInterval(gameState.timerInterval);
+            if (gameState.disarmTimerInterval) clearInterval(gameState.disarmTimerInterval);
+            
+            // Mostra todas as minas se perdeu
+            if (!isWin) {
+                const width = gameState.board[0].length;
+                const height = gameState.board.length;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        if (gameState.board[y][x] === -1 && !gameState.revealed.some(c => c.x === x && c.y === y)) {
+                            const cell = document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+                            cell.classList.add('mine');
+                            
+                            // Animação de explosão
+                            setTimeout(() => {
+                                createExplosionEffect(x, y);
+                            }, Math.random() * 1000);
+                        }
+                    }
+                }
+                
+                // Toca som de explosão
+                explosionSound.currentTime = 0;
+                explosionSound.play();
+            } else {
+                // Toca som de vitória
+                winSound.currentTime = 0;
+                winSound.play();
+                
+                // Efeito de confete
+                createConfetti();
+                
+                // Animação de vitória nas células
+                const cells = document.querySelectorAll('.cell');
+                cells.forEach((cell, index) => {
+                    setTimeout(() => {
+                        cell.animate([
+                            { transform: 'scale(1)', opacity: 1 },
+                            { transform: 'scale(1.2)', opacity: 0.8 },
+                            { transform: 'scale(1)', opacity: 1 }
+                        ], {
+                            duration: 300,
+                            easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+                        });
+                    }, (index % 10) * 50);
+                });
+            }
+            
+            // Mostra tela de game over
+            gameOverText.textContent = isWin ? 'MISSÃO CUMPRIDA' : 'MISSÃO FALHADA';
+            gameOverScreen.style.display = 'flex';
+            
+            if (isWin) {
+                gameOverScreen.classList.add('win');
+            } else {
+                gameOverScreen.classList.remove('win');
+            }
+            
+            // Animação de entrada
+            gameOverScreen.animate([
+                { opacity: 0, transform: 'scale(0.8)' },
+                { opacity: 1, transform: 'scale(1)' }
+            ], {
+                duration: 500,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+            
+            // Para música
+            bgMusic.pause();
+        }
+        
+        // Cria efeito de confete
+        function createConfetti() {
+            const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+            
+            for (let i = 0; i < 80; i++) { // Reduzido de 100 para 80
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                
+                // Posição aleatória na parte superior
+                confetti.style.left = `${Math.random() * 100}%`;
+                
+                // Cor aleatória
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Tamanho aleatório
+                const size = Math.random() * 10 + 5;
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size}px`;
+                
+                // Forma aleatória (quadrado ou círculo)
+                if (Math.random() > 0.5) {
+                    confetti.style.borderRadius = '50%';
+                } else {
+                    confetti.style.borderRadius = '0';
+                }
+                
+                // Rotação aleatória
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                
+                // Duração aleatória
+                const duration = Math.random() * 3 + 2;
+                confetti.style.animation = `confettiFall ${duration}s linear forwards`;
+                
+                // Delay aleatório
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                
+                document.body.appendChild(confetti);
+                
+                // Remove após a animação
+                setTimeout(() => {
+                    confetti.remove();
+                }, duration * 1000);
+            }
+        }
+    </script>
+</body>
+</html>
